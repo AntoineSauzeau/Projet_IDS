@@ -1,0 +1,5 @@
+For compile project :
+./script/compile.sh
+
+For start project :
+./script/start.sh <number_node>
