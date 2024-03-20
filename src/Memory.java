@@ -1,38 +1,42 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 
 public class Memory {
 
-    ArrayList<Integer> memory;
+    final static int MEMORY_SIZE = 1000;
 
-    ArrayList<Semaphore> mutexs;
+    Integer[] memory;
 
-    Memory(){
-        memory = new ArrayList<>();
-        mutexs = new ArrayList<>();
-        //new Semaphore(1);
+    Lock[] lMutex;
+    Condition[] lCond;
+
+    public Memory(){
+        memory = new Integer[MEMORY_SIZE];
+        lMutex = new Lock[MEMORY_SIZE];
+        lCond = new Condition[MEMORY_SIZE];
     }
 
     public int read(int index){
         //Verif si possible
-        return memory.get(index);
+        return memory[index];
     }
 
     public void write(int index, int value){
         //Verif si possible
 
-        if(memory.size() <= index){
-
-            memory.add(value);
-
-        }else{
-
-            memory.set(index, value);
+        if(memory.length <= index) {
+            memory[index] = value;
         }
+    }
 
+    public void lockElement(int index){
 
     }
 
+    public void releaseElement(int index){
 
+    }
 }

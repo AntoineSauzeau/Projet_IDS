@@ -1,26 +1,30 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Communication_impl implements Communication_itf {
 
     Memory memory;
-    ArrayList<Integer> listOtherNodeIds;
+    int nNode;
+    int nodeId;
 
-    Communication_impl(Memory memory){
+    public Communication_impl(Memory memory, int nNode, int nodeId){
         this.memory = memory;
+        this.nNode = nNode;
+        this.nodeId = nodeId;
     }
 
     @Override
-    public void AcquireMutexOnElement(int index) {
+    public void AcquireMutexOnElement(int index, int timestamp) {
+        memory.lockElement(index);
+    }
+
+    @Override
+    public void ReleaseMutexOnElement(int index, int timestamp) {
 
     }
 
     @Override
-    public void ReleaseMutexOnElement(int index) {
-
-    }
-
-    @Override
-    public void PropagateModification(int index) {
+    public void PropagateModification(int index, int value) {
 
     }
 }

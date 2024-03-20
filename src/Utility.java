@@ -3,8 +3,9 @@ public class Utility {
     Communication_impl communicationImpl;
     Memory memory;
 
-    Utility(Memory memory){
-        this.memory;
+    public Utility(Memory memory, Communication_impl communicationImpl){
+        this.memory = memory;
+        this.communicationImpl = communicationImpl;
     }
 
     public int read(int index){

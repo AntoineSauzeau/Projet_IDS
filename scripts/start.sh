@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export CLASSPATH=$CLASSPATH:'./classes:./lib/ComItf.jar'
+
 if [ -z "$1" ]
 then
   echo "start.sh <n_node>";
@@ -15,7 +17,6 @@ else
   echo "Rmi registry already started";
 fi;
 
-export CLASSPATH=$CLASSPATH:'./classes:./lib/ComItf.jar'
 for i in $(seq 1 1 "$1")
 do
   java ./src/Node.java "$1" "$i"

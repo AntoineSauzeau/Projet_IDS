@@ -14,5 +14,3 @@ jar cvf ../lib/ComItf.jar ${INTERFACE_FILES//'.java'/'.class'}
 jar cvf ../lib/ComRoi.jar ${ROI_FILES//'.java'/'.class'}
 cd ../src
 javac -d ../classes/ -classpath '../lib/ComItf.jar:../lib/ComRoi.jar' $OTHER_FILES
-
-export CLASSPATH=$CLASSPATH:'../lib/ComItf.jar'
