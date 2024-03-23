@@ -1,3 +1,6 @@
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+
 public class Utility {
 
     Communication_impl communicationImpl;
@@ -8,8 +11,7 @@ public class Utility {
         this.communicationImpl = communicationImpl;
     }
 
-    public int read(int index){
-
+    public int read(int index) {
         return memory.read(index);
     }
 

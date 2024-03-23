@@ -34,7 +34,7 @@ public class Node {
 
         Memory memory = new Memory();
 
-        Communication_impl communicationImpl = new Communication_impl(memory, nNode, nodeId);
+        Communication_impl communicationImpl = new Communication_impl(memory, nNode, nodeId, registry);
         Communication_itf communicationItf = (Communication_itf) UnicastRemoteObject.exportObject(communicationImpl, 0);
         registry.rebind("Node" + nodeId, communicationItf);
 
