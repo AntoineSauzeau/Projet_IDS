@@ -10,7 +10,8 @@ fi;
 
 echo "Lancement de "$1" nodes...";
 
-if [ $(ps | grep "rmiregistry" | wc -l) -eq 0 ]
+#if [ $(ps | grep "rmiregistry" | wc -l) -eq 0 ]
+if [ $(netstat -tulpn | grep "LISTEN" | grep "rmiregistry" | wc -l) -eq 0 ]
 then
   rmiregistry 6090 &
 else
@@ -19,5 +20,5 @@ fi;
 
 for i in $(seq 1 1 "$1")
 do
-  java ./src/Node.java "$1" "$i"
+  gnome-terminal -- java ./src/Node.java "$1" "$i"
 done
