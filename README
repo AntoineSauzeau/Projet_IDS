@@ -1,5 +1,5 @@
-For compile project :
-./script/compile.sh
+To compile project :
+./scripts/compile.sh
 
-For start project :
-./script/start.sh <number_node>
+To start project (Opens a terminal for each node):
+./scripts/start.sh <number_node>
