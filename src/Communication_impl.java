@@ -21,16 +21,11 @@ public class Communication_impl implements Communication_itf {
     }
 
     @Override
-    public ResponseType RequestMutexForElement(int index, long timestamp) {
-
+    public ResponseType AcquireMutexOnElement(int index, long timestamp) {
+        //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
         if(localEltRequestIndex == index && timestamp > localRequestTimestamp){
             return ResponseType.FAIL;
         }
-        return ResponseType.OK;
-    }
-
-    @Override
-    public ResponseType AcquireMutexOnElement(int index, long timestamp) {
         memory.lockElement(index);
         return ResponseType.OK;
     }
@@ -38,43 +33,37 @@ public class Communication_impl implements Communication_itf {
     @Override
     public void ReleaseMutexOnElement(int index) throws RemoteException {
         memory.releaseElement(index);
-        localEltRequestIndex = -1;
     }
 
     @Override
     public void PropagateModification(int index, int value) {
-
+        memory.setValue(index, value);
     }
 
-    public void AcquireMutexOnAllNodes(int index) throws NotBoundException, RemoteException, InterruptedException {
+    public void AcquireMutexOnAllNodesLoop(int index) throws NotBoundException, RemoteException, InterruptedException {
+        while(AcquireMutexOnAllNodes(index) == false){
+            //On attend avant de retenter d'obtenir le verrou pour chaque node
+            Thread.sleep(100);
+        }
+    }
+
+    public boolean AcquireMutexOnAllNodes(int index) throws NotBoundException, InterruptedException, RemoteException {
+
+        if(memory.isElementLocked(index)) return false;
 
         localRequestTimestamp = System.currentTimeMillis();
         localEltRequestIndex = index;
 
-        boolean stage1Failed = false;
+        for (int i = 0; i < nNode; i++) {
+            if (i == nodeId) continue;
 
-        //Stage 1
-        for(int i = 0; i < nNode; i++){
-            if(i == nodeId) continue;
-            Communication_impl node = (Communication_impl) registry.lookup("Node"+i);
-            ResponseType res = node.RequestMutexForElement(index, localRequestTimestamp);
-            if(res == ResponseType.FAIL){
-                stage1Failed = true;
-            }
+            Communication_impl node = (Communication_impl) registry.lookup("Node" + i);
+            ResponseType res = node.AcquireMutexOnElement(index, localRequestTimestamp);
+
+            if(res == ResponseType.FAIL) return false;
         }
-        if(stage1Failed == false) {
-            //Stage 2
-            for (int i = 0; i < nNode; i++) {
-                if (i == nodeId) continue;
-                Communication_impl node = (Communication_impl) registry.lookup("Node" + i);
-                node.AcquireMutexOnElement(index, localRequestTimestamp);
-            }
-        }
-        else{
-            //On retente au bout d'un certain temps si il y a eu un conflit
-            Thread.sleep(100);
-            AcquireMutexOnAllNodes(index);
-        }
+
+        return true;
     }
 
     public void ReleaseMutexOnAllNodes(int index) throws NotBoundException, RemoteException {
@@ -83,5 +72,7 @@ public class Communication_impl implements Communication_itf {
             Communication_impl node = (Communication_impl) registry.lookup("Node" + i);
             node.ReleaseMutexOnElement(index);
         }
+
+        localEltRequestIndex = -1;
     }
 }

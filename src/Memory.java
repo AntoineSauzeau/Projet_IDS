@@ -10,21 +10,19 @@ public class Memory {
 
     Integer[] memory;
 
-    Lock[] lMutex;
-    Condition[] lCond;
+    boolean lMutex[];
 
     public Memory(){
         memory = new Integer[MEMORY_SIZE];
-        lMutex = new Lock[MEMORY_SIZE];
-        lCond = new Condition[MEMORY_SIZE];
+        lMutex = new boolean[MEMORY_SIZE];
     }
 
-    public int read(int index){
+    public int getValue(int index){
         //Verif si possible
         return memory[index];
     }
 
-    public void write(int index, int value){
+    public void setValue(int index, int value){
         //Verif si possible
 
         if(memory.length <= index) {
@@ -33,10 +31,14 @@ public class Memory {
     }
 
     public void lockElement(int index){
-
+        lMutex[index] = true;
     }
 
     public void releaseElement(int index){
+        lMutex[index] = false;
+    }
 
+    public boolean isElementLocked(int index){
+        return lMutex[index];
     }
 }

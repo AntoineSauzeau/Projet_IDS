@@ -12,10 +12,10 @@ public class Utility {
     }
 
     public int read(int index) {
-        return memory.read(index);
+        return memory.getValue(index);
     }
 
     public void write(int index, int value){
-        write(index, value);
+        memory.setValue(index, value);
     }
 }

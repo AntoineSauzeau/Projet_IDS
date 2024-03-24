@@ -6,8 +6,6 @@ public interface Communication_itf extends Remote {
 
     enum ResponseType {OK, FAIL};
 
-    ResponseType RequestMutexForElement(int index, long timestamp) throws RemoteException;
-
     ResponseType AcquireMutexOnElement(int index, long timestamp) throws RemoteException;
 
     void ReleaseMutexOnElement(int index) throws RemoteException;
