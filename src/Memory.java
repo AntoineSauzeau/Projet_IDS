@@ -8,12 +8,12 @@ public class Memory {
 
     final static int MEMORY_SIZE = 1000;
 
-    Integer[] memory;
+    int[] memory;
 
     boolean lMutex[];
 
     public Memory(){
-        memory = new Integer[MEMORY_SIZE];
+        memory = new int[MEMORY_SIZE];
         lMutex = new boolean[MEMORY_SIZE];
     }
 
