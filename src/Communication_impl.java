@@ -1,4 +1,3 @@
-import java.rmi.AccessException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
@@ -13,18 +12,26 @@ public class Communication_impl implements Communication_itf {
     Registry registry;
     int localEltRequestIndex;
     long localRequestTimestamp;
+    ArrayList<Integer> lNodeWaiting;
+    Semaphore semaphore;
+    long logicalTimestamp;
 
     public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry){
         this.memory = memory;
         this.nNode = nNode;
         this.nodeId = nodeId;
         this.registry = registry;
+
+        this.lNodeWaiting = new ArrayList<>();
+        this.semaphore = new Semaphore(0);
+        logicalTimestamp = 0; //A voir
     }
 
     @Override
-    public ResponseType AcquireMutexOnElement(int index, long timestamp) throws RemoteException {
+    public ResponseType AcquireMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp, long logicalTimestamp) throws RemoteException {
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
-        if(localEltRequestIndex == index && timestamp > localRequestTimestamp){
+        if(localEltRequestIndex == index && requestTimestamp > localRequestTimestamp){
+            lNodeWaiting.add(nodeWhoRequestId);
             return ResponseType.FAIL;
         }
         memory.lockElement(index);
@@ -32,12 +39,12 @@ public class Communication_impl implements Communication_itf {
     }
 
     @Override
-    public void ReleaseMutexOnElement(int index) throws RemoteException {
+    public void ReleaseMutexOnElement(int index, long logicalTimestamp) throws RemoteException {
         memory.releaseElement(index);
     }
 
     @Override
-    public void PropagateModification(int index, int value) {
+    public void PropagateModification(int index, int value, long logicalTimestamp) {
         System.out.println("Received modification of element ("+ index +") = " + value);
         memory.setValue(index, value);
     }
@@ -46,8 +53,7 @@ public class Communication_impl implements Communication_itf {
         localRequestTimestamp = System.currentTimeMillis();
         localEltRequestIndex = index;
 
-        while (AcquireMutexOnAllNodes(index) == false) {
-            System.out.println(localRequestTimestamp);
+        if(!AcquireMutexOnAllNodes(index)) {
             //On attend avant de retenter d'obtenir le verrou pour chaque node
             try {
                 Thread.sleep(100);
@@ -71,7 +77,7 @@ public class Communication_impl implements Communication_itf {
                 ResponseType res;
                 try {
                     node = (Communication_itf) registry.lookup("Node" + i);
-                    res = node.AcquireMutexOnElement(index, localRequestTimestamp);
+                    res = node.AcquireMutexOnElement(nodeId, index, localRequestTimestamp, System.currentTimeMillis());
                 } catch (NotBoundException | RemoteException e) {
                     continue; //Le noeud n'existe probablement plus
                 }
@@ -85,7 +91,6 @@ public class Communication_impl implements Communication_itf {
 
         if(returnValue) System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
         else {
-            //localEltRequestIndex = -1;
             System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + "(" + memory.isElementLocked(index)+")");
         }
 
@@ -113,5 +118,25 @@ public class Communication_impl implements Communication_itf {
 
         localEltRequestIndex = -1;
         System.out.println("Node " + nodeId + " has released mutex for element " + index);
+
+        if(!lNodeWaiting.isEmpty()){
+            Integer nodeToWakeUpId = lNodeWaiting.get(0);
+            Communication_itf node = null;
+            try {
+                node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
+                node.WakeUp(lNodeWaiting, System.currentTimeMillis());
+                lNodeWaiting.clear();
+            } catch (NotBoundException | RemoteException e) {
+                //e.printStackTrace();
+            }
+        }
+    }
+
+    public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long logicalTimestamp) {
+        System.out.println("wake up node : " + nodeId);
+
+        lNodeAlreadyWaiting.remove(0);
+        lNodeWaiting = lNodeAlreadyWaiting;
+        semaphore.release();
     }
 }
