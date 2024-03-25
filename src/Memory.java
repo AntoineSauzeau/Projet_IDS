@@ -25,10 +25,20 @@ public class Memory {
     public void setValue(int index, int value){
         //Verif si possible
 
-        if(memory.length <= index) {
+        if(memory.length > index) {
             memory[index] = value;
         }
     }
+
+    public void printMemory(){
+        System.out.println("Memory :");
+        for (int i = 0; i < MEMORY_SIZE; i++){
+            System.out.print("[" + i + "," + memory[i] + "] ");
+        }
+        System.out.println("");
+    }
+
+
 
     public void lockElement(int index){
         lMutex[index] = true;

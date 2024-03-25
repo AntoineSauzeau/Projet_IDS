@@ -38,6 +38,7 @@ public class Communication_impl implements Communication_itf {
 
     @Override
     public void PropagateModification(int index, int value) {
+        System.out.println("Received modification of element ("+ index +") = " + value);
         memory.setValue(index, value);
     }
 
@@ -108,6 +109,6 @@ public class Communication_impl implements Communication_itf {
         }
 
         localEltRequestIndex = -1;
-        System.out.println("Node " + nodeId + " have released mutex for element " + index);
+        System.out.println("Node " + nodeId + " has released mutex for element " + index);
     }
 }

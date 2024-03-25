@@ -3,8 +3,10 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Scanner;
 
 import static java.lang.System.exit;
+import static java.lang.System.in;
 
 public class Node {
 
@@ -14,6 +16,8 @@ public class Node {
     int nodeId;
     Memory memory;
     Communication_impl communicationImpl;
+    Utility utility;
+    Registry registry;
 
     public static void main(String [] args) throws RemoteException, InterruptedException {
 
@@ -41,9 +45,12 @@ public class Node {
         Communication_itf communicationItf = (Communication_itf) UnicastRemoteObject.exportObject(communicationImpl, 0);
         registry.rebind("Node" + nodeId, communicationItf);
 
-        Utility utility = new Utility(memory, communicationImpl);
+        utility = new Utility(memory, communicationImpl);
 
+        waitEndStarting();
         StartTask();
+
+        //readInputFromUser();
     }
 
     void waitEndStarting(){
@@ -110,4 +117,53 @@ public class Node {
             communicationImpl.ReleaseMutexOnAllNodes(0);
         }
     }
+
+    public boolean readInputFromUser(){
+
+        System.out.println(" p - to print memory");
+        System.out.println(" q - to quit");
+
+        //Ecrire des messages jusqu'à ce que l'on quitte 'q'
+        Scanner scanner = new Scanner(System.in);
+        String userMessage;
+        while ((userMessage = scanner.nextLine()) != null) {
+
+            if(userMessage.equals("q")) break;
+            if(userMessage.equals("p")) {
+                memory.printMemory();
+                continue;
+            }
+
+            System.out.println("Node " + nodeId + " : " + userMessage);
+            processInput(userMessage);
+
+        }
+
+        return true;
+    }
+
+    public void processInput(String input){
+        String[] cmd = input.split(" ");
+        String op1 = cmd[0];
+        String op2 = cmd[2];
+        String symb = cmd[1];
+
+        int index = Integer.parseInt(op1);
+        int value = Integer.parseInt(op2);
+        if(symb.equals("=")){
+
+            communicationImpl.AcquireMutexOnAllNodes(index);
+            memory.setValue(index, value);
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("Put : " + memory.getValue(index) + " at index : " + index);
+            communicationImpl.ReleaseMutexOnAllNodes(index);
+
+        }
+    }
+
+
 }
