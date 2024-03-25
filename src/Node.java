@@ -50,7 +50,7 @@ public class Node {
         waitEndStarting();
         StartTask();
 
-        //readInputFromUser();
+        readInputFromUser();
     }
 
     void waitEndStarting(){
