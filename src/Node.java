@@ -1,3 +1,4 @@
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -32,7 +33,7 @@ public class Node {
 
         System.out.println("Node is starting (id=" + nodeId + ")");
 
-        Registry registry = LocateRegistry.getRegistry(host, port);
+        registry = LocateRegistry.getRegistry(host, port);
 
         memory = new Memory();
 
@@ -45,12 +46,30 @@ public class Node {
         StartTask();
     }
 
+    void waitEndStarting(){
+        while(true){
+            boolean finished = true;
+            for(int i = 1; i <= nNode; i++) {
+                if (i == nodeId) continue;
+
+                try {
+                    registry.lookup("Node" + i);
+                } catch (RemoteException | NotBoundException e) {
+                    finished = false;
+                }
+            }
+            if(finished) return;
+        }
+    }
+
+
+
     void StartTask(){
         if(nodeId == 1){
-            StartTask1();
+            StartTaskX();
         }
         else if(nodeId == 2){
-            StartTask2();
+            StartTaskX();
         }
         else{
             StartTaskX();
@@ -58,7 +77,7 @@ public class Node {
     }
 
     void StartTask1() {
-        communicationImpl.AcquireMutexOnAllNodes(0);
+        communicationImpl.AcquireMutexOnAllNodesLoop(0);
         memory.setValue(0, 5);
         try {
             Thread.sleep(20);
@@ -69,17 +88,26 @@ public class Node {
     }
 
     void StartTask2(){
-        communicationImpl.AcquireMutexOnAllNodes(0);
+        communicationImpl.AcquireMutexOnAllNodesLoop(0);
         System.out.println(memory.getValue(0));
         try {
             Thread.sleep(20);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
         communicationImpl.ReleaseMutexOnAllNodes(0);
     }
 
     void StartTaskX(){
-
+        for(int i = 0; i < 10; i++){
+            communicationImpl.AcquireMutexOnAllNodesLoop(0);
+            System.out.println(memory.getValue(0));
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            communicationImpl.ReleaseMutexOnAllNodes(0);
+        }
     }
 }

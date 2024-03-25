@@ -20,5 +20,5 @@ fi;
 
 for i in $(seq 1 1 "$1")
 do
-  gnome-terminal -- java ./src/Node.java "$1" "$i"
+  java ./src/Node.java "$1" "$i" &
 done

@@ -41,14 +41,20 @@ public class Communication_impl implements Communication_itf {
         memory.setValue(index, value);
     }
 
-    public void AcquireMutexOnAllNodesLoop(int index) throws NotBoundException, RemoteException, InterruptedException {
-        while(AcquireMutexOnAllNodes(index) == false){
+    public void AcquireMutexOnAllNodesLoop(int index) {
+        while (AcquireMutexOnAllNodes(index) == false) {
+            System.out.println(localRequestTimestamp);
             //On attend avant de retenter d'obtenir le verrou pour chaque node
-            Thread.sleep(100);
+            try {
+                Thread.sleep(100);
+            }
+            catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    public boolean AcquireMutexOnAllNodes(int index) {
+    boolean AcquireMutexOnAllNodes(int index) {
         System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
         boolean returnValue = true;
 
@@ -85,6 +91,8 @@ public class Communication_impl implements Communication_itf {
     public void ReleaseMutexOnAllNodes(int index) {
         System.out.println("Node " + nodeId + " start to release mutex for element " + index);
 
+        memory.releaseElement(index);
+
         for(int i = 1; i <= nNode; i++) {
             if (i == nodeId) continue;
 
@@ -95,7 +103,7 @@ public class Communication_impl implements Communication_itf {
                 node.ReleaseMutexOnElement(index);
             }
             catch (NotBoundException | RemoteException e) {
-                //e.printStackTrace();
+                e.printStackTrace();
             }
         }
 
