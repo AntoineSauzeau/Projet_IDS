@@ -2,7 +2,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.concurrent.Semaphore;
 
 public class Communication_impl implements Communication_itf {
 
@@ -55,10 +55,14 @@ public class Communication_impl implements Communication_itf {
 
         if(!AcquireMutexOnAllNodes(index)) {
             //On attend avant de retenter d'obtenir le verrou pour chaque node
+
             try {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e) {
+                System.out.println("Node " + nodeId + " waiting");
+                semaphore.acquire();
+                System.out.println("Node "+ nodeId + " awaked");
+                AcquireMutexOnAllNodes(index);
+                semaphore.release();
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -108,8 +112,8 @@ public class Communication_impl implements Communication_itf {
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + i);
-                node.PropagateModification(index, memory.getValue(index));
-                node.ReleaseMutexOnElement(index);
+                node.PropagateModification(index, memory.getValue(index), System.currentTimeMillis());
+                node.ReleaseMutexOnElement(index, System.currentTimeMillis());
             }
             catch (NotBoundException | RemoteException e) {
                 //e.printStackTrace();

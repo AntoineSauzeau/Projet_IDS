@@ -9,7 +9,7 @@ public interface Communication_itf extends Remote {
 
     ResponseType AcquireMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp, long logicalTimestamp) throws RemoteException;
 
-    void ReleaseMutexOnElement(int index) throws RemoteException;
+    void ReleaseMutexOnElement(int index, long logicalTimestamp) throws RemoteException;
 
     void PropagateModification(int index, int value, long logicalTimestamp) throws RemoteException;
 
