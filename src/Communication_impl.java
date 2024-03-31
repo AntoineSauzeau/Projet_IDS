@@ -30,7 +30,7 @@ public class Communication_impl implements Communication_itf {
     @Override
     public ResponseType AcquireMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp, long logicalTimestamp) throws RemoteException {
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
-        if(localEltRequestIndex == index && requestTimestamp > localRequestTimestamp){
+        if(localEltRequestIndex == index && requestTimestamp >= localRequestTimestamp){
             lNodeWaiting.add(nodeWhoRequestId);
             return ResponseType.FAIL;
         }
@@ -61,7 +61,7 @@ public class Communication_impl implements Communication_itf {
                 semaphore.acquire();
                 System.out.println("Node "+ nodeId + " awaked");
                 AcquireMutexOnAllNodes(index);
-                semaphore.release();
+                //semaphore.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -72,24 +72,21 @@ public class Communication_impl implements Communication_itf {
         System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
         boolean returnValue = true;
 
-        if(memory.isElementLocked(index)) returnValue = false;
-        else {
-            for (int i = 1; i <= nNode; i++) {
-                if (i == nodeId) continue;
+        for (int i = 1; i <= nNode; i++) {
+            if (i == nodeId) continue;
 
-                Communication_itf node;
-                ResponseType res;
-                try {
-                    node = (Communication_itf) registry.lookup("Node" + i);
-                    res = node.AcquireMutexOnElement(nodeId, index, localRequestTimestamp, System.currentTimeMillis());
-                } catch (NotBoundException | RemoteException e) {
-                    continue; //Le noeud n'existe probablement plus
-                }
+            Communication_itf node;
+            ResponseType res;
+            try {
+                node = (Communication_itf) registry.lookup("Node" + i);
+                res = node.AcquireMutexOnElement(nodeId, index, localRequestTimestamp, System.currentTimeMillis());
+            } catch (NotBoundException | RemoteException e) {
+                continue; //Le noeud n'existe probablement plus
+            }
 
-                if (res == ResponseType.FAIL) {
-                    returnValue = false;
-                    break;
-                }
+            if (res == ResponseType.FAIL) {
+                returnValue = false;
+                break;
             }
         }
 
@@ -137,7 +134,7 @@ public class Communication_impl implements Communication_itf {
     }
 
     public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long logicalTimestamp) {
-        System.out.println("wake up node : " + nodeId);
+        System.out.println("WakeUp() node : " + nodeId);
 
         lNodeAlreadyWaiting.remove(0);
         lNodeWaiting = lNodeAlreadyWaiting;
