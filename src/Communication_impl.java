@@ -15,6 +15,7 @@ public class Communication_impl implements Communication_itf {
     ArrayList<Integer> lNodeWaiting;
     Semaphore semaphore;
     long logicalTimestamp;
+    boolean waiting;
 
     public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry){
         this.memory = memory;
@@ -25,15 +26,18 @@ public class Communication_impl implements Communication_itf {
         this.lNodeWaiting = new ArrayList<>();
         this.semaphore = new Semaphore(0);
         logicalTimestamp = 0; //A voir
+        waiting = false;
     }
 
     @Override
     public ResponseType AcquireMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp, long logicalTimestamp) throws RemoteException {
+
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
-        if(localEltRequestIndex == index && requestTimestamp >= localRequestTimestamp){
+        if(!waiting && localEltRequestIndex == index && ((requestTimestamp == localRequestTimestamp && nodeWhoRequestId < nodeId) || requestTimestamp > localRequestTimestamp)){
             lNodeWaiting.add(nodeWhoRequestId);
             return ResponseType.FAIL;
         }
+
         memory.lockElement(index);
         return ResponseType.OK;
     }
@@ -53,14 +57,14 @@ public class Communication_impl implements Communication_itf {
         localRequestTimestamp = System.currentTimeMillis();
         localEltRequestIndex = index;
 
-        if(!AcquireMutexOnAllNodes(index)) {
+        while(!AcquireMutexOnAllNodes(index)) {
             //On attend avant de retenter d'obtenir le verrou pour chaque node
-
+            waiting = true;
             try {
                 System.out.println("Node " + nodeId + " waiting");
                 semaphore.acquire();
+                waiting = false;
                 System.out.println("Node "+ nodeId + " awaked");
-                AcquireMutexOnAllNodes(index);
                 //semaphore.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -137,7 +141,8 @@ public class Communication_impl implements Communication_itf {
         System.out.println("WakeUp() node : " + nodeId);
 
         lNodeAlreadyWaiting.remove(0);
-        lNodeWaiting = lNodeAlreadyWaiting;
+        lNodeWaiting = (ArrayList<Integer>) lNodeAlreadyWaiting.clone();
+        System.out.println("Other node who continue to wait : "+ lNodeWaiting);
         semaphore.release();
     }
 }
