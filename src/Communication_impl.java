@@ -18,6 +18,7 @@ public class Communication_impl implements Communication_itf {
     long localLogicalTimestamp;
     long localRequestTimestamp;
     boolean waiting;
+    ReentrantLock lock;
 
     public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry){
         this.memory = memory;
@@ -29,10 +30,13 @@ public class Communication_impl implements Communication_itf {
         this.semaphore = new Semaphore(0);
         localLogicalTimestamp = 0; //A voir
         waiting = false;
+        lock = new ReentrantLock();
+        System.out.println("Fin constructeur node " + nodeId);
     }
 
     @Override
     public ResponseType AcquireMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp) throws RemoteException {
+        lock.lock();
         ResponseType res;
 
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
@@ -46,6 +50,7 @@ public class Communication_impl implements Communication_itf {
         }
 
         localLogicalTimestamp = Math.max(localLogicalTimestamp, requestTimestamp)+1;
+        lock.unlock();
         return res;
     }
 
@@ -117,6 +122,7 @@ public class Communication_impl implements Communication_itf {
     }
 
     public void ReleaseMutexOnAllNodes(int index) {
+        lock.lock();
 
         System.out.println("Node " + nodeId + " start to release mutex for element " + index);
 
@@ -153,7 +159,7 @@ public class Communication_impl implements Communication_itf {
         }
 
         System.out.println("Node " + nodeId + " has released mutex for element " + index);
-
+        lock.unlock();
     }
 
     public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long requestTimestamp) {
