@@ -121,7 +121,6 @@ public class Communication_impl implements Communication_itf {
         System.out.println("Node " + nodeId + " start to release mutex for element " + index);
 
         memory.releaseElement(index);
-        localEltRequestIndex = -1;
         //localLogicalTimestamp++;
 
         for(int i = 1; i <= nNode; i++) {
@@ -130,7 +129,7 @@ public class Communication_impl implements Communication_itf {
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + i);
-                node.PropagateModification(index, memory.getValue(index), System.currentTimeMillis());
+                node.PropagateModification(index, memory.getValue(index), localLogicalTimestamp);
                 node.ReleaseMutexOnElement(index, System.currentTimeMillis());
             }
             catch (NotBoundException | RemoteException e) {
@@ -138,13 +137,15 @@ public class Communication_impl implements Communication_itf {
             }
         }
 
+        localEltRequestIndex = -1;
+
         if(!lNodeWaiting.isEmpty()){
             //localLogicalTimestamp++;
             Integer nodeToWakeUpId = lNodeWaiting.get(0);
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
-                node.WakeUp(lNodeWaiting, System.currentTimeMillis());
+                node.WakeUp(lNodeWaiting, localLogicalTimestamp);
                 lNodeWaiting.clear();
             } catch (NotBoundException | RemoteException e) {
                 //e.printStackTrace();
@@ -159,7 +160,7 @@ public class Communication_impl implements Communication_itf {
         System.out.println("WakeUp() node : " + nodeId);
 
         lNodeAlreadyWaiting.remove(0);
-        lNodeWaiting = (ArrayList<Integer>) lNodeAlreadyWaiting.clone();
+        lNodeWaiting.addAll(lNodeAlreadyWaiting);
         System.out.println("Other node who continue to wait : "+ lNodeWaiting);
         semaphore.release();
 
