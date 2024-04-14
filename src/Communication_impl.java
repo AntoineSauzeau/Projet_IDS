@@ -46,7 +46,7 @@ public class Communication_impl implements Communication_itf {
         ResponseType res;
 
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
-        if(!waiting && localEltRequestIndex == index && ((requestTimestamp == localRequestTimestamp && nodeWhoRequestId < nodeId) || requestTimestamp < localRequestTimestamp)){
+        if(!waiting && localEltRequestIndex == index && ((requestTimestamp == localRequestTimestamp && nodeWhoRequestId < nodeId) || requestTimestamp < localRequestTimestamp) || index == elementOwned){
             lNodeWaiting.add(nodeWhoRequestId);
             res = ResponseType.FAIL;
         }
@@ -134,6 +134,7 @@ public class Communication_impl implements Communication_itf {
         }
 
         if(returnValue) {
+            elementOwned = index;
             System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
         }
         else {
@@ -147,8 +148,6 @@ public class Communication_impl implements Communication_itf {
         lock.lock();
 
         System.out.println("Node " + nodeId + " start to release mutex for element " + index);
-
-        memory.releaseElement(index);
 
         for(int i = 1; i <= nNode; i++) {
             if (i == nodeId) continue;
@@ -164,7 +163,9 @@ public class Communication_impl implements Communication_itf {
             }
         }
 
+        memory.releaseElement(index);
         localEltRequestIndex = -1;
+        elementOwned = -1;
 
         if(!lNodeWaiting.isEmpty()){
             //localLogicalTimestamp++;
