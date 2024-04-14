@@ -15,10 +15,13 @@ public class Communication_impl implements Communication_itf {
     int localEltRequestIndex;
     ArrayList<Integer> lNodeWaiting;
     Semaphore semaphore;
+    Semaphore semaphore2;
     long localLogicalTimestamp;
     long localRequestTimestamp;
     boolean waiting;
     ReentrantLock lock;
+    int elementOwned;
+    int lockedByOtherElement;
 
     public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry){
         this.memory = memory;
@@ -31,6 +34,9 @@ public class Communication_impl implements Communication_itf {
         localLogicalTimestamp = 0; //A voir
         waiting = false;
         lock = new ReentrantLock();
+        semaphore2 = new Semaphore(1);
+        elementOwned = -1;
+        lockedByOtherElement = -1;
         System.out.println("Fin constructeur node " + nodeId);
     }
 
@@ -45,7 +51,9 @@ public class Communication_impl implements Communication_itf {
             res = ResponseType.FAIL;
         }
         else{
-            memory.lockElement(index);
+            System.out.println(waiting + " " + localEltRequestIndex + " " + index + " " + requestTimestamp + " " + localRequestTimestamp + " " + nodeWhoRequestId + " " + nodeId);
+            lockedByOtherElement = index;
+            memory.lockElement(index, nodeWhoRequestId);
             res = ResponseType.OK;
         }
 
@@ -89,6 +97,18 @@ public class Communication_impl implements Communication_itf {
     boolean AcquireMutexOnAllNodes(int index) {
 
         System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
+        if(memory.isElementLocked(index)){
+            System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + memory.whoLockedElement(index) + "already locked");
+            Communication_itf node;
+            try {
+                node = (Communication_itf) registry.lookup("Node" + memory.whoLockedElement(index));
+                node.WaitOn(nodeId);
+            } catch (NotBoundException | RemoteException e) {
+
+            }
+            return false;
+        }
+
         boolean returnValue = true;
 
         localLogicalTimestamp++;
@@ -113,7 +133,9 @@ public class Communication_impl implements Communication_itf {
             }
         }
 
-        if(returnValue) System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
+        if(returnValue) {
+            System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
+        }
         else {
             System.out.println("Node " + nodeId + " fail to acquire mutex on node " + failNode + " for element " + index + "(" + memory.isElementLocked(index)+")");
         }
@@ -127,7 +149,6 @@ public class Communication_impl implements Communication_itf {
         System.out.println("Node " + nodeId + " start to release mutex for element " + index);
 
         memory.releaseElement(index);
-        //localLogicalTimestamp++;
 
         for(int i = 1; i <= nNode; i++) {
             if (i == nodeId) continue;
@@ -151,6 +172,7 @@ public class Communication_impl implements Communication_itf {
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
+                System.out.println("Node " + nodeId + " wake up node " + nodeToWakeUpId);
                 node.WakeUp(lNodeWaiting, localLogicalTimestamp);
                 lNodeWaiting.clear();
             } catch (NotBoundException | RemoteException e) {
@@ -163,13 +185,15 @@ public class Communication_impl implements Communication_itf {
     }
 
     public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long requestTimestamp) {
-        System.out.println("WakeUp() node : " + nodeId);
 
         lNodeAlreadyWaiting.remove(0);
         lNodeWaiting.addAll(lNodeAlreadyWaiting);
-        System.out.println("Other node who continue to wait : "+ lNodeWaiting);
+        System.out.println("Other node who continue to wait on node " + nodeId + " : "+ lNodeWaiting);
         semaphore.release();
+    }
 
-        //localLogicalTimestamp = Math.max(localLogicalTimestamp, requestTimestamp)+1;
+    @Override
+    public void WaitOn(int requestNodeId) throws RemoteException {
+        lNodeWaiting.add(requestNodeId);
     }
 }

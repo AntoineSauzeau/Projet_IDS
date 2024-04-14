@@ -9,12 +9,19 @@ public class Memory {
     final static int MEMORY_SIZE = 1000;
 
     int[] memory;
+    int[] lockedBy;
 
     boolean lMutex[];
 
     public Memory(){
         memory = new int[MEMORY_SIZE];
+
+        lockedBy = new int[MEMORY_SIZE];
         lMutex = new boolean[MEMORY_SIZE];
+        for(int i = 0; i < lockedBy.length; i++){
+            lockedBy[i] = -1;
+            lMutex[i] = false;
+        }
     }
 
     public int getValue(int index){
@@ -40,8 +47,9 @@ public class Memory {
 
 
 
-    public void lockElement(int index){
+    public void lockElement(int index, int ownerId){
         lMutex[index] = true;
+        lockedBy[index] = ownerId;
     }
 
     public void releaseElement(int index){
@@ -50,5 +58,9 @@ public class Memory {
 
     public boolean isElementLocked(int index){
         return lMutex[index];
+    }
+
+    public int whoLockedElement(int index){
+        return lockedBy[index];
     }
 }

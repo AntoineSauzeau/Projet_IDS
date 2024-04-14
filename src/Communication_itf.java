@@ -15,4 +15,6 @@ public interface Communication_itf extends Remote {
 
     void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long requestTimestamp) throws RemoteException;
 
+    void WaitOn(int requestNodeId) throws RemoteException;
+
 }
