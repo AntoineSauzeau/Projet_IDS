@@ -23,6 +23,7 @@ public class Communication_impl implements Communication_itf {
     int elementOwned;
     int lockedByOtherElement;
     boolean debug;
+    int lastWakeUpNode;
 
     public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry, boolean debug){
         this.memory = memory;
@@ -39,6 +40,7 @@ public class Communication_impl implements Communication_itf {
         semaphore2 = new Semaphore(1);
         elementOwned = -1;
         lockedByOtherElement = -1;
+        lastWakeUpNode = -1;
 
         if(debug) System.out.println("Fin constructeur node " + nodeId);
     }
@@ -49,7 +51,7 @@ public class Communication_impl implements Communication_itf {
         ResponseType res;
 
         //Si ce node veut un verrou sur le même élément (conflit) et qu'il a commencé avant -> Echec
-        if(!waiting && localEltRequestIndex == index && ((requestTimestamp == localRequestTimestamp && nodeWhoRequestId < nodeId) || requestTimestamp < localRequestTimestamp) || index == elementOwned){
+        if(lastWakeUpNode != nodeWhoRequestId && !waiting && localEltRequestIndex == index && ((requestTimestamp == localRequestTimestamp && nodeWhoRequestId < nodeId) || requestTimestamp < localRequestTimestamp) || index == elementOwned){
             lNodeWaiting.add(nodeWhoRequestId);
             res = ResponseType.FAIL;
         }
@@ -65,7 +67,10 @@ public class Communication_impl implements Communication_itf {
     }
 
     @Override
-    public void ReleaseMutexOnElement(int index, long requestTimestamp) throws RemoteException {
+    public void ReleaseMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp) throws RemoteException {
+        if(lastWakeUpNode == nodeWhoRequestId){
+            lastWakeUpNode = -1;
+        }
         memory.releaseElement(index);
     }
 
@@ -97,8 +102,21 @@ public class Communication_impl implements Communication_itf {
     boolean AcquireMutexOnAllNodes(int index) {
         if(debug) System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
 
+        if(lastWakeUpNode != -1){
+            if(debug) System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + lastWakeUpNode + " not yet finished after wake up");
+
+            Communication_itf node;
+            try {
+                node = (Communication_itf) registry.lookup("Node" + lastWakeUpNode);
+                node.WaitOn(nodeId);
+            } catch (NotBoundException | RemoteException e) {
+
+            }
+            return false;
+        }
+
         if(memory.isElementLocked(index)){
-            if(debug) System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + memory.whoLockedElement(index) + "already locked");
+            if(debug) System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + memory.whoLockedElement(index) + " already locked");
 
             Communication_itf node;
             try {
@@ -157,7 +175,7 @@ public class Communication_impl implements Communication_itf {
             try {
                 node = (Communication_itf) registry.lookup("Node" + i);
                 node.PropagateModification(index, memory.getValue(index), localLogicalTimestamp);
-                node.ReleaseMutexOnElement(index, System.currentTimeMillis());
+                node.ReleaseMutexOnElement(nodeId, index, System.currentTimeMillis());
             }
             catch (NotBoundException | RemoteException e) {
                 //e.printStackTrace();
@@ -174,6 +192,7 @@ public class Communication_impl implements Communication_itf {
             try {
                 node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
                 if(debug) System.out.println("Node " + nodeId + " wake up node " + nodeToWakeUpId);
+                lastWakeUpNode = nodeToWakeUpId;
                 node.WakeUp(lNodeWaiting, localLogicalTimestamp);
                 lNodeWaiting.clear();
             } catch (NotBoundException | RemoteException e) {

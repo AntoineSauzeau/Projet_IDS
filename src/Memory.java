@@ -10,7 +10,6 @@ public class Memory {
 
     int[] memory;
     int[] lockedBy;
-
     boolean lMutex[];
 
     public Memory(){
