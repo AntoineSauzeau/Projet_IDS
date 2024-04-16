@@ -18,7 +18,13 @@ else
   echo "Rmi registry already started";
 fi;
 
+debug=false
+if [ "$2" = "true" ]
+then
+  debug=true
+fi
+
 for i in $(seq 1 1 "$1")
 do
-  java ./src/Node.java "$1" "$i" &
+  java ./src/Node.java "$1" "$i" "$2" &
 done

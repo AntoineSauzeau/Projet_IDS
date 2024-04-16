@@ -22,12 +22,14 @@ public class Communication_impl implements Communication_itf {
     ReentrantLock lock;
     int elementOwned;
     int lockedByOtherElement;
+    boolean debug;
 
-    public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry){
+    public Communication_impl(Memory memory, int nNode, int nodeId, Registry registry, boolean debug){
         this.memory = memory;
         this.nNode = nNode;
         this.nodeId = nodeId;
         this.registry = registry;
+        this.debug = debug;
 
         this.lNodeWaiting = new ArrayList<>();
         this.semaphore = new Semaphore(0);
@@ -37,7 +39,8 @@ public class Communication_impl implements Communication_itf {
         semaphore2 = new Semaphore(1);
         elementOwned = -1;
         lockedByOtherElement = -1;
-        System.out.println("Fin constructeur node " + nodeId);
+
+        if(debug) System.out.println("Fin constructeur node " + nodeId);
     }
 
     @Override
@@ -51,7 +54,6 @@ public class Communication_impl implements Communication_itf {
             res = ResponseType.FAIL;
         }
         else{
-            System.out.println(waiting + " " + localEltRequestIndex + " " + index + " " + requestTimestamp + " " + localRequestTimestamp + " " + nodeWhoRequestId + " " + nodeId);
             lockedByOtherElement = index;
             memory.lockElement(index, nodeWhoRequestId);
             res = ResponseType.OK;
@@ -65,14 +67,12 @@ public class Communication_impl implements Communication_itf {
     @Override
     public void ReleaseMutexOnElement(int index, long requestTimestamp) throws RemoteException {
         memory.releaseElement(index);
-        //localLogicalTimestamp = Math.max(localLogicalTimestamp, requestTimestamp)+1;
     }
 
     @Override
     public void PropagateModification(int index, int value, long requestTimestamp) {
-        System.out.println("Received modification of element ("+ index +") = " + value);
+        if(debug) System.out.println("Received modification of element ("+ index +") = " + value);
         memory.setValue(index, value);
-        //localLogicalTimestamp = Math.max(localLogicalTimestamp, requestTimestamp)+1;
     }
 
     public void AcquireMutexOnAllNodesLoop(int index) {
@@ -83,10 +83,10 @@ public class Communication_impl implements Communication_itf {
             //On attend avant de retenter d'obtenir le verrou pour chaque node
             waiting = true;
             try {
-                System.out.println("Node " + nodeId + " waiting");
+                if(debug) System.out.println("Node " + nodeId + " waiting");
                 semaphore.acquire();
                 waiting = false;
-                System.out.println("Node "+ nodeId + " awaked");
+                if(debug) System.out.println("Node " + nodeId + " awaked");
                 //semaphore.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -95,10 +95,11 @@ public class Communication_impl implements Communication_itf {
     }
 
     boolean AcquireMutexOnAllNodes(int index) {
+        if(debug) System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
 
-        System.out.println("Node " + nodeId + " trying to acquire mutex for element " + index);
         if(memory.isElementLocked(index)){
-            System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + memory.whoLockedElement(index) + "already locked");
+            if(debug) System.out.println("Node " + nodeId + " fail to acquire mutex for element " + index + " because node " + memory.whoLockedElement(index) + "already locked");
+
             Communication_itf node;
             try {
                 node = (Communication_itf) registry.lookup("Node" + memory.whoLockedElement(index));
@@ -135,10 +136,10 @@ public class Communication_impl implements Communication_itf {
 
         if(returnValue) {
             elementOwned = index;
-            System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
+            if(debug) System.out.println("Node " + nodeId + " succeed to acquire mutex for element " + index);
         }
         else {
-            System.out.println("Node " + nodeId + " fail to acquire mutex on node " + failNode + " for element " + index + "(" + memory.isElementLocked(index)+")");
+            if(debug) System.out.println("Node " + nodeId + " fail to acquire mutex on node " + failNode + " for element " + index + "(" + memory.isElementLocked(index)+")");
         }
 
         return returnValue;
@@ -147,7 +148,7 @@ public class Communication_impl implements Communication_itf {
     public void ReleaseMutexOnAllNodes(int index) {
         lock.lock();
 
-        System.out.println("Node " + nodeId + " start to release mutex for element " + index);
+        if(debug) System.out.println("Node " + nodeId + " start to release mutex for element " + index);
 
         for(int i = 1; i <= nNode; i++) {
             if (i == nodeId) continue;
@@ -168,12 +169,11 @@ public class Communication_impl implements Communication_itf {
         elementOwned = -1;
 
         if(!lNodeWaiting.isEmpty()){
-            //localLogicalTimestamp++;
             Integer nodeToWakeUpId = lNodeWaiting.get(0);
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
-                System.out.println("Node " + nodeId + " wake up node " + nodeToWakeUpId);
+                if(debug) System.out.println("Node " + nodeId + " wake up node " + nodeToWakeUpId);
                 node.WakeUp(lNodeWaiting, localLogicalTimestamp);
                 lNodeWaiting.clear();
             } catch (NotBoundException | RemoteException e) {
@@ -181,7 +181,7 @@ public class Communication_impl implements Communication_itf {
             }
         }
 
-        System.out.println("Node " + nodeId + " has released mutex for element " + index);
+        if(debug) System.out.println("Node " + nodeId + " has released mutex for element " + index);
         lock.unlock();
     }
 
@@ -189,7 +189,7 @@ public class Communication_impl implements Communication_itf {
 
         lNodeAlreadyWaiting.remove(0);
         lNodeWaiting.addAll(lNodeAlreadyWaiting);
-        System.out.println("Other node who continue to wait on node " + nodeId + " : "+ lNodeWaiting);
+        if(debug) System.out.println("Other node who continue to wait on node " + nodeId + " : "+ lNodeWaiting);
         semaphore.release();
     }
 

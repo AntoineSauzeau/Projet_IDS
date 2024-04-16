@@ -18,6 +18,7 @@ public class Node {
     Communication_impl communicationImpl;
     Utility utility;
     Registry registry;
+    boolean debug;
 
     public static void main(String [] args) throws RemoteException, InterruptedException {
 
@@ -30,10 +31,17 @@ public class Node {
         exit(0);
     }
 
-    Node(String [] args) throws RemoteException, InterruptedException {
+    Node(String [] args) throws RemoteException {
 
         nNode = Integer.parseInt(args[0]);
         nodeId = Integer.parseInt(args[1]);
+
+        if(args[2].equals("true")){
+            debug = true;
+        }
+        else{
+            debug = false;
+        }
 
         System.out.println("Node is starting (id=" + nodeId + ")");
 
@@ -41,7 +49,7 @@ public class Node {
 
         memory = new Memory();
 
-        communicationImpl = new Communication_impl(memory, nNode, nodeId, registry);
+        communicationImpl = new Communication_impl(memory, nNode, nodeId, registry, debug);
         Communication_itf communicationItf = (Communication_itf) UnicastRemoteObject.exportObject(communicationImpl, 0);
         registry.rebind("Node" + nodeId, communicationItf);
 
@@ -50,7 +58,8 @@ public class Node {
         waitEndStarting();
         StartTask();
 
-        readInputFromUser();
+        while(true);
+        //readInputFromUser();
     }
 
     void waitEndStarting(){
@@ -108,6 +117,7 @@ public class Node {
     void StartTaskX(){
         for(int i = 0; i < 10; i++){
             communicationImpl.AcquireMutexOnAllNodesLoop(0);
+            memory.setValue(0, memory.getValue(0)+1);
             System.out.println(memory.getValue(0));
             try {
                 Thread.sleep(20);
