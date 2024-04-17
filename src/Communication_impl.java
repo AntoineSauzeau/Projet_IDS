@@ -67,7 +67,7 @@ public class Communication_impl implements Communication_itf {
     }
 
     @Override
-    public void ReleaseMutexOnElement(int nodeWhoRequestId, int index, long requestTimestamp) throws RemoteException {
+    public void ReleaseMutexOnElement(int nodeWhoRequestId, int index) throws RemoteException {
         if(lastWakeUpNode == nodeWhoRequestId){
             lastWakeUpNode = -1;
         }
@@ -75,7 +75,7 @@ public class Communication_impl implements Communication_itf {
     }
 
     @Override
-    public void PropagateModification(int index, int value, long requestTimestamp) {
+    public void PropagateModification(int index, int value) throws RemoteException {
         if(debug) System.out.println("Received modification of element ("+ index +") = " + value);
         memory.setValue(index, value);
     }
@@ -122,9 +122,7 @@ public class Communication_impl implements Communication_itf {
             try {
                 node = (Communication_itf) registry.lookup("Node" + memory.whoLockedElement(index));
                 node.WaitOn(nodeId);
-            } catch (NotBoundException | RemoteException e) {
-
-            }
+            } catch (NotBoundException | RemoteException e) {}
             return false;
         }
 
@@ -174,8 +172,8 @@ public class Communication_impl implements Communication_itf {
             Communication_itf node = null;
             try {
                 node = (Communication_itf) registry.lookup("Node" + i);
-                node.PropagateModification(index, memory.getValue(index), localLogicalTimestamp);
-                node.ReleaseMutexOnElement(nodeId, index, System.currentTimeMillis());
+                node.PropagateModification(index, memory.getValue(index));
+                node.ReleaseMutexOnElement(nodeId, index);
             }
             catch (NotBoundException | RemoteException e) {
                 //e.printStackTrace();
@@ -193,7 +191,7 @@ public class Communication_impl implements Communication_itf {
                 node = (Communication_itf) registry.lookup("Node" + nodeToWakeUpId);
                 if(debug) System.out.println("Node " + nodeId + " wake up node " + nodeToWakeUpId);
                 lastWakeUpNode = nodeToWakeUpId;
-                node.WakeUp(lNodeWaiting, localLogicalTimestamp);
+                node.WakeUp(lNodeWaiting);
                 lNodeWaiting.clear();
             } catch (NotBoundException | RemoteException e) {
                 //e.printStackTrace();
@@ -204,7 +202,8 @@ public class Communication_impl implements Communication_itf {
         lock.unlock();
     }
 
-    public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting, long requestTimestamp) {
+    @Override
+    public void WakeUp(ArrayList<Integer> lNodeAlreadyWaiting) throws RemoteException {
 
         lNodeAlreadyWaiting.remove(0);
         lNodeWaiting.addAll(lNodeAlreadyWaiting);
