@@ -26,5 +26,5 @@ fi
 
 for i in $(seq 1 1 "$1")
 do
-  java ./src/Node.java "$1" "$i" "$2" &
+  java Node "$1" "$i" "$2" &
 done
