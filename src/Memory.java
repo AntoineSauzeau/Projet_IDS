@@ -53,6 +53,7 @@ public class Memory {
 
     public void releaseElement(int index){
         lMutex[index] = false;
+        lockedBy[index] = -1;
     }
 
     public boolean isElementLocked(int index){
