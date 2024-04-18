@@ -4,7 +4,7 @@ export CLASSPATH=$CLASSPATH:'./classes:./lib/ComItf.jar'
 
 if [ -z "$1" ]
 then
-  echo "start.sh <n_node>";
+  echo "start.sh <n_node> <debug> <interactive>";
   exit 1;
 fi;
 
@@ -24,10 +24,21 @@ then
   debug=true
 fi
 
+interactive=false
+if [ "$3" = "true" ]
+then
+  interactive=true
+fi
+
 for i in $(seq 1 1 "$1")
 do
-  #java Node "$1" "$i" "$2" &
 
-  #Ouvrir dans un terminal dedié
-  gnome-terminal -- java Node "$1" "$i" "$2" &
+  if [ "$3" = "true" ]
+  then
+    #Ouvrir dans un terminal dedié
+    gnome-terminal -- java Node "$1" "$i" "$2" "true"
+  else
+    java Node "$1" "$i" "$2" "false" &
+  fi
+
 done

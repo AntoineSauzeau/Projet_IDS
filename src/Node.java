@@ -55,11 +55,15 @@ public class Node {
 
         waitEndStarting();
 
-        //StartTaskX();
-        StartMultipleTasks();
+        //Test 1
+        StartTaskX();
 
-        //while(true);
-        readInputFromUser();
+        //Test 2
+        //StartMultipleTasks();
+
+        if(args[3].equals("true")) readInputFromUser();
+        else while(true);
+
     }
 
     void waitEndStarting(){
@@ -67,7 +71,6 @@ public class Node {
             boolean finished = true;
             for(int i = 1; i <= nNode; i++) {
                 if (i == nodeId) continue;
-
                 try {
                     registry.lookup("Node" + i);
                 } catch (RemoteException | NotBoundException e) {
