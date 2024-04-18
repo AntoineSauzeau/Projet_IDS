@@ -91,7 +91,7 @@ public class Communication_impl implements Communication_itf {
                 if(debug) System.out.println("Node " + nodeId + " waiting");
                 semaphore.acquire();
                 waiting = false;
-                if(debug) System.out.println("Node " + nodeId + " awaked");
+                if(debug) System.out.println("Node " + nodeId + " awoken");
                 //semaphore.release();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

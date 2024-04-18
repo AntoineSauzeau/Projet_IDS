@@ -4,7 +4,7 @@ mkdir -p lib classes
 
 INTERFACE_FILES="Communication_itf.java"
 ROI_FILES="Communication_impl.java"
-OTHER_FILES="Memory.java Utility.java Node.java"
+OTHER_FILES="Memory.java Node.java"
 
 cd src
 javac -d ../classes/ $INTERFACE_FILES

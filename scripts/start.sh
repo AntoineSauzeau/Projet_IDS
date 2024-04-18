@@ -26,5 +26,8 @@ fi
 
 for i in $(seq 1 1 "$1")
 do
-  java Node "$1" "$i" "$2" &
+  #java Node "$1" "$i" "$2" &
+
+  #Ouvrir dans un terminal dedié
+  gnome-terminal -- java Node "$1" "$i" "$2" &
 done
